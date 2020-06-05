@@ -1,0 +1,8 @@
+{
+  "/api/*": {
+    "target": "https://www.kijiji.ca",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  }
+}
