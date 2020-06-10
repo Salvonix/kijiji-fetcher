@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
 import { timer } from 'rxjs';
 import { take } from 'rxjs/operators';
+import {Location} from '../models/location.model';
 
 @Component({
   selector: 'app-scraper',
@@ -16,9 +17,13 @@ export class ScraperComponent implements OnInit {
   public apiURL = 'https://www.kijiji.ca/b-jeux-video-consoles/';
   public proxyUrl = 'https://cors-anywhere.herokuapp.com/';
   public categorie = 'c141';
-  public locationVille = 'b-mauricie/';
-  public location = 'l1700147';
-  //b-ville-de-montreal l1700281
+  public location: Location = new Location('Mauricie', 'b-mauricie/', 'l1700147');
+
+  public locations: Location[] = [
+    new Location('Mauricie', 'b-mauricie/', 'l1700147'),
+    new Location('Tout le Québec', 'quebec/', 'l9001'),
+    new Location('Montréal', 'b-ville-de-montreal/', 'l1700281')
+  ];
   public interval;
   public count = 0;
   constructor(private http: HttpClient, @Inject(DOCUMENT) private document: Document ) { }
@@ -33,19 +38,16 @@ export class ScraperComponent implements OnInit {
 
   }
 
-  public changeLocation(newLocation: string) {
-
-    if ( newLocation != null) {
-      newLocation = newLocation.replace(/ /g, '-');
-      console.log(newLocation);
-      this.locationVille = newLocation.toLowerCase() + '/';
+  public changeLocation() {
+    if ( this.location !== undefined) {
+      this.getAds();
     }
   }
 
   getAds() {
     console.log('----------------');
-    console.log('fetch to -> '+this.locationVille);
-    fetch(this.proxyUrl + this.apiURL + this.locationVille + this.categorie + this.location)
+    console.log('fetch to -> ' + this.location.path);
+    fetch(this.proxyUrl + this.apiURL + this.location.path + this.categorie + this.location.id)
     .then(blob => blob.text())
     .then(html => {
       this.strip(html);
@@ -59,14 +61,14 @@ export class ScraperComponent implements OnInit {
     console.log('----------------');
   }
 
-  public strip(html): string {
+  public strip(html) {
     let regexTitle = /<div.*class="title">(.*?(\n))+?<\/div>/g, result, indices = [];
-    let regexReplaceImg = /<picture>(.*?(\n)(\s*))+?<\/picture>/g;
-    let regexReplaceDetail = /<div.*class="details">(.*?(\n)(\s*))+?<\/div>/g;
-    let regexDivDebToTab = /<\s*div[^>]*>/g;
-    let regexDivFinToTab = /<\/div>/g;
-    let regexHREFCor = /<\s*a[^>]*?"/g;
-    let newString = '';
+    // let regexReplaceImg = /<picture>(.*?(\n)(\s*))+?<\/picture>/g;
+    const regexReplaceDetail = /<div.*class="details">(.*?(\n)(\s*))+?<\/div>/g;
+    // let regexDivDebToTab = /<\s*div[^>]*>/g;
+    // let regexDivFinToTab = /<\/div>/g;
+    const regexHREFCor = /<\s*a[^>]*?"/g;
+    // let newString = '';
 
     let oldTable = document.getElementsByTagName('table'), index;
 
@@ -74,27 +76,27 @@ export class ScraperComponent implements OnInit {
         oldTable[index].parentNode.removeChild(oldTable[index]);
     }
 
-    let table = this.document.createElement('table');
+    const table = this.document.createElement('table');
     table.setAttribute('border', '1');
     table.setAttribute('width', '50%');
     table.align = 'center';
 
-    while( (result = regexTitle.exec(html)) ) {
+    // tslint:disable-next-line: no-conditional-assignment
+    while ( result = regexTitle.exec(html) ) {
 
-      let newS = result[0].replace(regexReplaceDetail, '')
+      const newS = result[0].replace(regexReplaceDetail, '')
                          .replace(/\n/g, '')
-                         .replace(regexHREFCor,'<a href="https://www.kijiji.ca');
+                         .replace(regexHREFCor, '<a href="https://www.kijiji.ca');
 
 
 
-      let row = this.document.createElement("tr");
-      let cell = this.document.createElement("td");
+      const row = this.document.createElement('tr');
+      const cell = this.document.createElement('td');
       cell.innerHTML = newS;
       row.appendChild(cell);
       table.appendChild(row);
     }
-    this.document.body.appendChild(table);
-    return newString ;
+    this.document.getElementById('content').appendChild(table);
   }
 
 }
